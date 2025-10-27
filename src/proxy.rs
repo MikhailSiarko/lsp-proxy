@@ -170,7 +170,7 @@ impl Proxy {
 
         _ = smol::future::zip(client_to_server, server_to_client).await;
 
-        let _ = child.kill();
+        child.kill()?;
 
         drop(write_to_server);
         drop(write_to_client);
