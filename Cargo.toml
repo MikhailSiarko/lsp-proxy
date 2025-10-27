@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 authors = ["Mikhail Siarko <mikhail.siarko@gmail.com>"]
 description = "A lightweight Language Server Protocol (LSP) proxy server implemented in Rust."
-repository = "https://github.com/MikhailSiarko/lsp-proxy.git"
+repository = "https://github.com/MikhailSiarko/lsp-proxy"
 license = "MIT"
 
 [dependencies]
