@@ -7,12 +7,12 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub struct Proxy {
-    hooks: HashMap<String, Arc<dyn Hook>>,
+    hooks: HashMap<String, Box<dyn Hook>>,
     pending_requests: Arc<Mutex<HashMap<Value, String>>>,
 }
 
 impl Proxy {
-    fn new(hooks: HashMap<String, Arc<dyn Hook>>) -> Self {
+    fn new(hooks: HashMap<String, Box<dyn Hook>>) -> Self {
         Self {
             hooks,
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
@@ -270,7 +270,7 @@ where
 }
 
 pub struct ProxyBuilder {
-    hooks: HashMap<String, Arc<dyn Hook>>,
+    hooks: HashMap<String, Box<dyn Hook>>,
 }
 
 impl ProxyBuilder {
@@ -280,7 +280,7 @@ impl ProxyBuilder {
         }
     }
 
-    pub fn with_hook(mut self, method: &str, hook: Arc<dyn Hook>) -> Self {
+    pub fn with_hook(mut self, method: &str, hook: Box<dyn Hook>) -> Self {
         self.hooks.insert(method.to_owned(), hook);
         self
     }
