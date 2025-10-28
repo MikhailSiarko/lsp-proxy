@@ -8,7 +8,7 @@ A Rust library for proxying LSP (Language Server Protocol) messages with hooks f
 - **Request/Response Hooks**: Intercept and modify requests and responses by method name
 - **Notification Generation**: Generate notifications while processing messages
 - **Process Management**: Spawn and manage LSP server processes
-- **Async**: Built with `smol` for async operations
+- **Async**: Built with `tokio` for async operations
 
 ## Installation
 
@@ -54,9 +54,9 @@ fn main() -> std::io::Result<()> {
             .with_hook("textDocument/completion" Arc::new(MyHook));
 
         // Spawn LSP server and forward messages
-        proxy.spawn(
-            "rust-analyzer",
-            &[/* Forrard LSP args */],
+        proxy.forward(
+            server_reader,
+            server_writer,
             client_reader,
             client_writer,
         ).await?;
@@ -89,15 +89,16 @@ Server → Proxy → Client
 ### API
 
 **Proxy**
-- `spawn(cmd, args, reader, writer)` - Spawn server and forward messages
+- `forward(server_reader, server_writer, client_reader, client_writer)` - Forwards messages
 
 **Hook Trait**
-- `on_request(message) -> HookResult` - Process request
-- `on_response(message) -> HookResult` - Process response
+- `on_request(request) -> HookResult` - Process request
+- `on_response(response) -> HookResult` - Process response
+- `on_notification(notification) -> HookResult` - Process notification
 
 **HookOutput**
 - `new(message)` - Create with modified message
-- `with_notification(notif)` - Add notification (chainable)
+- `with_message(direction, message)` - Add message (chainable)
 
 **Message**
 - `notification(method, params)` - Create notification
