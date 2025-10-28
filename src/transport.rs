@@ -1,6 +1,6 @@
 use serde_json::Value;
-use smol::io::{AsyncReadExt, AsyncWriteExt};
 use std::io;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub async fn read_message<R: AsyncReadExt + Unpin>(reader: &mut R) -> io::Result<Value> {
     let mut buffer = Vec::new();
