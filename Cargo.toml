@@ -1,6 +1,6 @@
 [package]
 name = "lsp-proxy"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = ["Mikhail Siarko <mikhail.siarko@gmail.com>"]
 description = "A lightweight Language Server Protocol (LSP) proxy server implemented in Rust."

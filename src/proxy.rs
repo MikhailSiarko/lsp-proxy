@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{self, Sender};
 
 pub struct Proxy {
     hooks: HashMap<String, Arc<dyn Hook>>,
-    pending_requests: Mutex<HashMap<u64, String>>,
+    pending_requests: Mutex<HashMap<i64, String>>,
 }
 
 impl Proxy {
