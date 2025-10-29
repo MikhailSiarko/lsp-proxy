@@ -10,14 +10,14 @@ pub enum Direction {
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    pub id: u64,
+    pub id: i64,
     pub method: String,
     pub params: Option<Value>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
-    pub id: u64,
+    pub id: i64,
     pub result: Option<Value>,
     pub error: Option<Value>,
 }
@@ -39,7 +39,7 @@ impl Message {
     pub fn from_value(value: Value) -> Result<Self, String> {
         let obj = value.as_object().ok_or("Message must be an object")?;
 
-        let id = obj.get("id").and_then(|id| id.as_u64());
+        let id = obj.get("id").and_then(|id| id.as_i64());
         let method = obj.get("method").and_then(|m| m.as_str()).map(String::from);
         let params = obj.get("params").cloned();
         let result = obj.get("result").cloned();
@@ -102,7 +102,7 @@ impl Message {
         }
     }
 
-    pub fn get_id(&self) -> Option<&u64> {
+    pub fn get_id(&self) -> Option<&i64> {
         match self {
             Message::Request(Request { id, .. }) => Some(id),
             Message::Response(Response { id, .. }) => Some(id),
