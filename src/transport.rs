@@ -7,7 +7,6 @@ pub async fn read_message<R: AsyncReadExt + Unpin>(reader: &mut R) -> io::Result
     let mut header_buf = Vec::new();
     let mut content_length: Option<usize> = None;
 
-    header_buf.clear();
     let bytes_len = buffer.read_until(b'\n', &mut header_buf).await?;
     if bytes_len == 0 {
         return Err(io::Error::new(
@@ -51,9 +50,8 @@ pub async fn write_message<W: AsyncWriteExt + Unpin>(
         )
     })?;
 
-    let header = format!("Content-Length: {}\r\n\r\n", content.len());
-    writer.write_all(header.as_bytes()).await?;
-    writer.write_all(content.as_bytes()).await?;
+    let message = format!("Content-Length: {}\r\n\r\n{}", content.len(), content);
+    writer.write_all(message.as_bytes()).await?;
     writer.flush().await?;
 
     Ok(())
