@@ -1,6 +1,6 @@
 [package]
 name = "lsp-proxy"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 authors = ["Mikhail Siarko <mikhail.siarko@gmail.com>"]
 description = "A lightweight Language Server Protocol (LSP) proxy server implemented in Rust."
@@ -11,4 +11,5 @@ license = "MIT"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 async-trait = "0.1"
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { version = "1.48.0", features = ["io-util", "macros", "rt-multi-thread", "sync"] }
+dashmap = "6.1.0"
