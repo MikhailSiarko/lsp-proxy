@@ -1,22 +1,21 @@
 use crate::hooks::{Direction, Hook, HookError, Message};
 use crate::transport::{read_message, write_message};
-use std::collections::HashMap;
+use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::join;
-use tokio::sync::Mutex;
 use tokio::sync::mpsc::{self, Sender};
 
 pub struct Proxy {
-    hooks: HashMap<String, Arc<dyn Hook>>,
-    pending_requests: Mutex<HashMap<i64, String>>,
+    hooks: DashMap<String, Arc<dyn Hook>>,
+    pending_requests: DashMap<i64, String>,
 }
 
 impl Proxy {
-    fn new(hooks: HashMap<String, Arc<dyn Hook>>) -> Self {
+    fn new(hooks: DashMap<String, Arc<dyn Hook>>) -> Self {
         Self {
             hooks,
-            pending_requests: Mutex::new(HashMap::new()),
+            pending_requests: DashMap::new(),
         }
     }
 
@@ -27,10 +26,8 @@ impl Proxy {
         match message {
             Message::Request(request) => match self.hooks.get(&request.method) {
                 Some(hook) => {
-                    {
-                        let mut pending = self.pending_requests.lock().await;
-                        pending.insert(request.id, request.method.clone());
-                    }
+                    self.pending_requests
+                        .insert(request.id, request.method.clone());
                     let output = hook.on_request(request).await?;
                     Ok(ProcessedMessage::WithMessages {
                         message: output.message,
@@ -58,10 +55,10 @@ impl Proxy {
     ) -> Result<ProcessedMessage, HookError> {
         match message {
             Message::Response(response) => {
-                let method = {
-                    let mut pending = self.pending_requests.lock().await;
-                    pending.remove(&response.id)
-                };
+                let method = self
+                    .pending_requests
+                    .remove(&response.id)
+                    .map(|(_, method)| method);
 
                 if let Some(method) = method
                     && let Some(hook) = self.hooks.get(&method)
@@ -104,8 +101,8 @@ impl Proxy {
         let proxy = Arc::new(self);
         let server_to_client_proxy = proxy.clone();
 
-        let (client_sender, mut client_receiver) = mpsc::channel::<Message>(10);
-        let (server_sender, mut server_receiver) = mpsc::channel::<Message>(10);
+        let (client_sender, mut client_receiver) = mpsc::channel::<Message>(100);
+        let (server_sender, mut server_receiver) = mpsc::channel::<Message>(100);
 
         let server_message_sender = server_sender.clone();
         let client_message_sender = client_sender.clone();
@@ -153,7 +150,7 @@ impl Proxy {
 
 impl Default for Proxy {
     fn default() -> Self {
-        Self::new(HashMap::new())
+        Self::new(DashMap::new())
     }
 }
 
@@ -304,17 +301,17 @@ where
 }
 
 pub struct ProxyBuilder {
-    hooks: HashMap<String, Arc<dyn Hook>>,
+    hooks: DashMap<String, Arc<dyn Hook>>,
 }
 
 impl ProxyBuilder {
     pub fn new() -> Self {
         Self {
-            hooks: HashMap::new(),
+            hooks: DashMap::new(),
         }
     }
 
-    pub fn with_hook(mut self, method: &str, hook: Arc<dyn Hook>) -> Self {
+    pub fn with_hook(self, method: &str, hook: Arc<dyn Hook>) -> Self {
         self.hooks.insert(method.to_owned(), hook);
         self
     }
