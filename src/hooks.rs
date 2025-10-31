@@ -23,14 +23,21 @@ impl std::error::Error for HookError {}
 
 #[derive(Debug)]
 pub struct HookOutput {
-    pub message: Message,
+    pub message: Option<Message>,
     pub generated_messages: Vec<(Direction, Message)>,
 }
 
 impl HookOutput {
     pub fn new(message: Message) -> Self {
         Self {
-            message: message,
+            message: Some(message),
+            generated_messages: Vec::new(),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            message: None,
             generated_messages: Vec::new(),
         }
     }
@@ -46,9 +53,20 @@ impl HookOutput {
     }
 
     pub fn as_processed(self) -> ProcessedMessage {
-        ProcessedMessage::WithMessages {
-            message: self.message,
-            generated_messages: self.generated_messages,
+        match self.message {
+            Some(message) => {
+                if self.generated_messages.is_empty() {
+                    return ProcessedMessage::Forward(message);
+                }
+
+                ProcessedMessage::WithMessages {
+                    message,
+                    generated_messages: self.generated_messages,
+                }
+            }
+            None => ProcessedMessage::Ignore {
+                generated_messages: self.generated_messages,
+            },
         }
     }
 }

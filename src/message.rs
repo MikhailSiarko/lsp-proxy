@@ -1,3 +1,4 @@
+use serde::Serialize;
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -6,21 +7,21 @@ pub enum Direction {
     ToServer,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Request {
     pub id: i64,
     pub method: String,
     pub params: Option<Value>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Response {
     pub id: i64,
     pub result: Option<Value>,
     pub error: Option<Value>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Notification {
     pub method: String,
     pub params: Option<Value>,

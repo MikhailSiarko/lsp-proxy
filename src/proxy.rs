@@ -107,34 +107,7 @@ impl Proxy {
     }
 }
 
-async fn process_server_message(
-    hooks: &HashMap<String, Arc<dyn Hook>>,
-    pending_requests: &Mutex<HashMap<i64, String>>,
-    message: Message,
-) -> Result<ProcessedMessage, HookError> {
-    match message {
-        Message::Response(response) => {
-            let method = { pending_requests.lock().await.remove(&response.id) };
-
-            if let Some(method) = method
-                && let Some(hook) = hooks.get(&method)
-            {
-                return Ok(hook.on_response(response).await?.as_processed());
-            }
-
-            Ok(ProcessedMessage::Forward(Message::Response(response)))
-        }
-        Message::Notification(notification) => match hooks.get(&notification.method) {
-            Some(hook) => Ok(hook.on_notification(notification).await?.as_processed()),
-            None => Ok(ProcessedMessage::Forward(Message::Notification(
-                notification,
-            ))),
-        },
-        Message::Request { .. } => Ok(ProcessedMessage::Forward(message)),
-    }
-}
-
-async fn process_client_message(
+async fn process_message(
     hooks: &HashMap<String, Arc<dyn Hook>>,
     pending_requests: &Mutex<HashMap<i64, String>>,
     message: Message,
@@ -157,7 +130,17 @@ async fn process_client_message(
                 notification,
             ))),
         },
-        Message::Response { .. } => Ok(ProcessedMessage::Forward(message)),
+        Message::Response(response) => {
+            let method = { pending_requests.lock().await.remove(&response.id) };
+
+            if let Some(method) = method
+                && let Some(hook) = hooks.get(&method)
+            {
+                return Ok(hook.on_response(response).await?.as_processed());
+            }
+
+            Ok(ProcessedMessage::Forward(Message::Response(response)))
+        }
     }
 }
 
@@ -187,7 +170,7 @@ where
         };
 
         if let Ok(message) = message {
-            match process_client_message(&hooks, &pending_requests, message).await {
+            match process_message(&hooks, &pending_requests, message).await {
                 Ok(processed) => {
                     let (main_message, generated_messages) = processed.into_parts();
 
@@ -244,7 +227,7 @@ where
         };
 
         if let Ok(message) = message {
-            match process_server_message(&hooks, &pending_requests, message).await {
+            match process_message(&hooks, &pending_requests, message).await {
                 Ok(processed) => {
                     let (main_message, generated_messages) = processed.into_parts();
 
