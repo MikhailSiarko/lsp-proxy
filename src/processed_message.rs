@@ -7,6 +7,9 @@ pub enum ProcessedMessage {
         message: Message,
         generated_messages: Vec<(Direction, Message)>,
     },
+    Ignore {
+        generated_messages: Vec<(Direction, Message)>,
+    },
 }
 
 impl ProcessedMessage {
@@ -14,6 +17,7 @@ impl ProcessedMessage {
         match self {
             ProcessedMessage::Forward(msg) => Some(msg),
             ProcessedMessage::WithMessages { message, .. } => Some(message),
+            ProcessedMessage::Ignore { .. } => None,
         }
     }
 
@@ -22,7 +26,8 @@ impl ProcessedMessage {
             ProcessedMessage::Forward(_) => &[],
             ProcessedMessage::WithMessages {
                 generated_messages, ..
-            } => generated_messages,
+            }
+            | ProcessedMessage::Ignore { generated_messages } => generated_messages,
         }
     }
 
@@ -33,6 +38,7 @@ impl ProcessedMessage {
                 message,
                 generated_messages,
             } => (Some(message), generated_messages),
+            ProcessedMessage::Ignore { generated_messages } => (None, generated_messages),
         }
     }
 }
