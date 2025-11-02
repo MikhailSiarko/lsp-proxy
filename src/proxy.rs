@@ -36,7 +36,7 @@ impl Proxy {
         CR: AsyncReadExt + Unpin + Send + 'static,
         CW: AsyncWriteExt + Unpin + Send + 'static,
     {
-        let hooks = Arc::new(self.hooks);
+        let hooks = Arc::new(Mutex::new(self.hooks));
         let pending_requests = Arc::new(Mutex::new(self.pending_requests));
 
         let (client_sender, mut client_receiver) = mpsc::unbounded_channel::<Message>();
@@ -108,12 +108,12 @@ impl Proxy {
 }
 
 async fn process_message(
-    hooks: &HashMap<String, Arc<dyn Hook>>,
+    hooks: &Mutex<HashMap<String, Arc<dyn Hook>>>,
     pending_requests: &Mutex<HashMap<i64, String>>,
     message: Message,
 ) -> Result<ProcessedMessage, HookError> {
     match message {
-        Message::Request(request) => match hooks.get(&request.method) {
+        Message::Request(request) => match hooks.lock().await.get(&request.method) {
             Some(hook) => {
                 pending_requests
                     .lock()
@@ -124,7 +124,7 @@ async fn process_message(
             }
             None => Ok(ProcessedMessage::Forward(Message::Request(request))),
         },
-        Message::Notification(notification) => match hooks.get(&notification.method) {
+        Message::Notification(notification) => match hooks.lock().await.get(&notification.method) {
             Some(hook) => Ok(hook.on_notification(notification).await?.as_processed()),
             None => Ok(ProcessedMessage::Forward(Message::Notification(
                 notification,
@@ -134,7 +134,7 @@ async fn process_message(
             let method = { pending_requests.lock().await.remove(&response.id) };
 
             if let Some(method) = method
-                && let Some(hook) = hooks.get(&method)
+                && let Some(hook) = hooks.lock().await.get(&method)
             {
                 return Ok(hook.on_response(response).await?.as_processed());
             }
@@ -151,7 +151,7 @@ impl Default for Proxy {
 }
 
 async fn forward_to_server<R>(
-    hooks: Arc<HashMap<String, Arc<dyn Hook>>>,
+    hooks: Arc<Mutex<HashMap<String, Arc<dyn Hook>>>>,
     pending_requests: Arc<Mutex<HashMap<i64, String>>>,
     mut client_reader: R,
     server_message_sender: UnboundedSender<Message>,
@@ -208,7 +208,7 @@ where
 }
 
 async fn forward_to_client<R>(
-    hooks: Arc<HashMap<String, Arc<dyn Hook>>>,
+    hooks: Arc<Mutex<HashMap<String, Arc<dyn Hook>>>>,
     pending_requests: Arc<Mutex<HashMap<i64, String>>>,
     mut server_reader: R,
     server_message_sender: UnboundedSender<Message>,
